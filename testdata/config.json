@@ -1,0 +1,22 @@
+{
+    "databases":[
+        {
+            "host":"KWPO-SERVER251\\KWPO251",
+            "port":1433,
+            "user":"test_user",
+            "pwd":"@qq1234",
+            "dbname":"wc_test_db",
+            "driver":"mssql",
+            "params":""
+        },
+        {
+            "host":"KWPO-SERVER251",
+            "port":3306,
+            "user":"test_user",
+            "pwd":"FWp7rjSe",
+            "dbname":"wc_test_db",
+            "driver":"mysql",
+            "params":"timeout=30s"
+        }
+    ]
+}
