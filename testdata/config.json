@@ -18,5 +18,15 @@
             "driver":"mysql",
             "params":"timeout=30s"
         }
+    ],
+    "MQs":[
+        {
+            "host":"10.20.12.80",
+            "port":5672,
+            "user":"test",
+            "pwd":"XSojliSA",
+            "queue":"test"
+        }
     ]
+
 }
