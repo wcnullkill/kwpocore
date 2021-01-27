@@ -39,53 +39,55 @@ func initMssql(dbcfg *conf.DBConfig) (*sql.DB, error) {
 // 	presql 执行bulk insert 前需要执行的语句
 // 	postsql 执行bulk insert 后将要执行的语句
 // 输出字段说明：
-//	insert 行数
-func BulkCopy(db *sql.DB, head []string, content [][]interface{}, tbname string, presql, postsql string) int64 {
+//	insert 行数,error
+func BulkCopy(db *sql.DB, head []string, content [][]interface{}, tbname string, presql, postsql string) (rowCount int64, err error) {
 	txn, err := db.Begin()
 	if err != nil {
-		panic(err)
+		return
 	}
 
-	//预处理
-	db.Exec(presql)
-
 	if len(content) == 0 {
-		panic("没有数据")
+		err = errors.New("没有数据")
+	}
+
+	_, err = db.Exec(presql)
+	if err != nil {
+		return
 	}
 
 	stm, err := txn.Prepare(mssql.CopyIn(tbname, mssql.BulkOptions{}, head...))
 
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	for i := 0; i < len(content); i++ {
 		_, err = stm.Exec(content[i]...)
 		if err != nil {
-			panic(err)
+			return
 		}
 
 	}
 	result, err := stm.Exec()
 
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	err = stm.Close()
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	err = txn.Commit()
-	rowCount, _ := result.RowsAffected()
-
-	fmt.Printf("批量copy数据%d条", rowCount)
+	rowCount, err = result.RowsAffected()
 
 	//后处理
-	db.Exec(postsql)
-
-	return rowCount
+	_, err = db.Exec(postsql)
+	if err != nil {
+		return
+	}
+	return
 }
 
 func getMSSQLStr(dbcfg *conf.DBConfig) string {
