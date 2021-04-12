@@ -1,3 +1,4 @@
+package prot
 
 import (
 	"bytes"
@@ -10,6 +11,10 @@ import (
 const (
 	tagName string = "prot"
 )
+
+type encodeState struct {
+	out bytes.Buffer
+}
 
 // getFields 获取有序字段名
 func getFields(v interface{}) ([]string, error) {
@@ -71,39 +76,46 @@ func Marshal(v interface{}, opts ...ProtOption) ([]byte, error) {
 
 	arr := convertSlice(v)
 
-	return marshal(arr, fields, opt)
+	return marshal(arr, fields, opt), nil
 }
 
-func marshal(arr []interface{}, fields []string, opt protOptions) ([]byte, error) {
-	// rs, cs := opt.rowSep, opt.columnSep
-	// for row := range arr {
+func marshal(arr []reflect.Value, fields []string, opt protOptions) []byte {
+	e := new(encodeState)
 
-	// }
-	return nil, nil
-}
-
-func encodeRow(v reflect.Value, sep byte) []byte {
-	buf := new(bytes.Buffer)
-	l := v.Len()
-	for i := 0; i < l; i++ {
-		//buf.Write(v.Bytes())
-		buf.WriteByte(sep)
+	rs, cs := opt.rowSep, opt.columnSep
+	for i, row := range arr {
+		encodeRow(e, row, fields, cs)
+		if i < len(arr)-1 {
+			e.out.WriteByte(rs)
+		}
 	}
-	return buf.Bytes()[:buf.Len()-1]
+	return e.out.Bytes()
 }
 
-func convertSlice(v interface{}) []interface{} {
+func encodeRow(e *encodeState, v reflect.Value, fs []string, sep byte) {
+
+	for i := range fs {
+		fieldEncode(e, v.FieldByName(fs[i]))
+		if i < len(fs)-1 {
+			e.out.WriteByte(sep)
+		}
+	}
+
+}
+
+func convertSlice(v interface{}) []reflect.Value {
 	a := reflect.ValueOf(v)
 	l := a.Len()
-	s := make([]interface{}, l)
+	s := make([]reflect.Value, l)
 	for i := 0; i < l; i++ {
-		s[i] = a.Index(i).Interface()
+		s[i] = a.Index(i)
 	}
 	return s
 }
 
-func feildTypeValid(v reflect.Value) bool {
-	switch v.Kind() {
+func fieldTypeValid(v reflect.Value) bool {
+	kind := v.Kind()
+	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return true
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -115,4 +127,35 @@ func feildTypeValid(v reflect.Value) bool {
 	default:
 		return false
 	}
+}
+
+func fieldEncode(e *encodeState, v reflect.Value) {
+	kind := v.Kind()
+	switch kind {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		intEncode(e, v)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		uIntEncode(e, v)
+	case reflect.Float32, reflect.Float64:
+		floatEncode(e, v)
+	case reflect.String:
+		stringEncode(e, v)
+	}
+}
+
+func intEncode(e *encodeState, v reflect.Value) {
+	var buf []byte
+	e.out.Write(strconv.AppendInt(buf, v.Int(), 10))
+}
+func uIntEncode(e *encodeState, v reflect.Value) {
+	var buf []byte
+	e.out.Write(strconv.AppendUint(buf, v.Uint(), 10))
+}
+func floatEncode(e *encodeState, v reflect.Value) {
+	var buf []byte
+	e.out.Write(strconv.AppendFloat(buf, v.Float(), 'f', 10, 64))
+}
+func stringEncode(e *encodeState, v reflect.Value) {
+	var buf []byte
+	e.out.Write(strconv.AppendQuote(buf, v.String()))
 }
