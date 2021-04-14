@@ -154,8 +154,10 @@ func fieldEncode(e *encodeState, v reflect.Value) {
 		intEncode(e, v)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		uIntEncode(e, v)
-	case reflect.Float32, reflect.Float64:
-		floatEncode(e, v)
+	case reflect.Float32:
+		floatEncode(e, v, 32)
+	case reflect.Float64:
+		floatEncode(e, v, 64)
 	case reflect.String:
 		stringEncode(e, v)
 	}
@@ -169,9 +171,9 @@ func uIntEncode(e *encodeState, v reflect.Value) {
 	var buf []byte
 	e.out.Write(strconv.AppendUint(buf, v.Uint(), 10))
 }
-func floatEncode(e *encodeState, v reflect.Value) {
+func floatEncode(e *encodeState, v reflect.Value, bits int) {
 	var buf []byte
-	e.out.Write(strconv.AppendFloat(buf, v.Float(), 'f', 10, 64))
+	e.out.Write(strconv.AppendFloat(buf, v.Float(), 'f', -1, bits))
 }
 func stringEncode(e *encodeState, v reflect.Value) {
 	e.out.Write([]byte(v.String()))
