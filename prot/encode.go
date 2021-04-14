@@ -16,48 +16,55 @@ type encodeState struct {
 	out bytes.Buffer
 }
 
-// getFields 获取有序字段名
-func getFields(v interface{}) ([]string, error) {
+type field struct {
+	name string
+	t    reflect.Type
+}
+
+// getEncodeFields 获取有序字段
+// 目前要求：struct内每个字段，都设置prot:{num}，{num}为int型，从1开始，且连续
+// v类型为slice类型
+func getEncodeFields(v interface{}) ([]field, error) {
 	//fmt.Println(reflect.TypeOf(v).Kind())
-	va := reflect.ValueOf(v)
-	if va.Kind() != reflect.Slice {
-		return nil, errors.New("必须是slice类型")
+	if err := encodeValid(v); err != nil {
+		return nil, err
+	}
+	return getFields(reflect.TypeOf(v))
+}
+
+// getFields 传入Type slice
+func getFields(v reflect.Type) ([]field, error) {
+
+	if v.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("getFields方法要求传入参数必须为slice类型，当前类型为%s", v.Kind())
 	}
 
-	if va.IsNil() {
-		return nil, errors.New("不能为nil")
-	}
-	a := va.Index(0).Interface()
-	t := reflect.TypeOf(a)
-	if t.Kind() != reflect.Struct {
-		return nil, errors.New("slice元素必须为struct类型")
-	}
-	fieldNum := t.NumField()
-	if fieldNum == 0 {
-		return nil, errors.New("struct必须有字段")
-	}
-	fields := make([]string, fieldNum)
+	va := v.Elem()
+
+	fieldNum := va.NumField()
+
+	fields := make([]field, fieldNum)
 
 	// 将prot的值填充tags
 	for i := 0; i < fieldNum; i++ {
-		s := t.Field(i).Tag.Get(tagName)
+		s := va.Field(i).Tag.Get(tagName)
 		n, err := strconv.Atoi(s)
 		if err != nil {
 			return nil, fmt.Errorf("%s不能转换为int", s)
 		}
 		if n > fieldNum {
-			return nil, errors.New("prot标签必须从1开始，且连续，不重复")
+			return nil, errors.New("prot值大于字段数量")
 		}
-		if len(fields[n-1]) > 0 {
-			return nil, errors.New("prot标签必须从1开始，且连续，不重复")
+		if len(fields[n-1].name) > 0 {
+			return nil, errors.New("prot有重复")
 		}
-		fields[n-1] = t.Field(i).Name
+		fields[n-1] = field{va.Field(i).Name, va.Field(i).Type}
 	}
 
 	//如果tags中有空字符串，则认为prot值有重复
 	for _, tag := range fields {
-		if len(tag) == 0 {
-			return nil, errors.New("prot标签必须从1开始，且连续，不重复")
+		if len(tag.name) == 0 {
+			return nil, errors.New("prot值不连续")
 		}
 	}
 	return fields, nil
@@ -69,7 +76,7 @@ func Marshal(v interface{}, opts ...ProtOption) ([]byte, error) {
 		o.apply(&opt)
 	}
 
-	fields, err := getFields(v)
+	fields, err := getEncodeFields(v)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +86,7 @@ func Marshal(v interface{}, opts ...ProtOption) ([]byte, error) {
 	return marshal(arr, fields, opt), nil
 }
 
-func marshal(arr []reflect.Value, fields []string, opt protOptions) []byte {
+func marshal(arr []reflect.Value, fields []field, opt protOptions) []byte {
 	e := new(encodeState)
 
 	rs, cs := opt.rowSep, opt.columnSep
@@ -92,15 +99,13 @@ func marshal(arr []reflect.Value, fields []string, opt protOptions) []byte {
 	return e.out.Bytes()
 }
 
-func encodeRow(e *encodeState, v reflect.Value, fs []string, sep byte) {
-
+func encodeRow(e *encodeState, v reflect.Value, fs []field, sep byte) {
 	for i := range fs {
-		fieldEncode(e, v.FieldByName(fs[i]))
+		fieldEncode(e, v.FieldByName(fs[i].name))
 		if i < len(fs)-1 {
 			e.out.WriteByte(sep)
 		}
 	}
-
 }
 
 func convertSlice(v interface{}) []reflect.Value {
@@ -111,6 +116,19 @@ func convertSlice(v interface{}) []reflect.Value {
 		s[i] = a.Index(i)
 	}
 	return s
+}
+
+// encodeValid
+func encodeValid(v interface{}) error {
+	va := reflect.ValueOf(v)
+	if va.Kind() != reflect.Slice || va.IsNil() {
+		return errors.New("必须是slice类型")
+	}
+
+	if va.Type().Elem().Kind() != reflect.Struct {
+		return errors.New("slice元素必须为struct类型")
+	}
+	return nil
 }
 
 func fieldTypeValid(v reflect.Value) bool {
@@ -156,6 +174,5 @@ func floatEncode(e *encodeState, v reflect.Value) {
 	e.out.Write(strconv.AppendFloat(buf, v.Float(), 'f', 10, 64))
 }
 func stringEncode(e *encodeState, v reflect.Value) {
-	var buf []byte
-	e.out.Write(strconv.AppendQuote(buf, v.String()))
+	e.out.Write([]byte(v.String()))
 }

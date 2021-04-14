@@ -15,11 +15,11 @@ type User struct {
 
 var (
 	tab = []User{
-		{UserName: "wc", Age: 30, Money1: 28977988998789.093409203410234, Money2: 342394808.0980349582098540980349850239845023984},
-		{UserName: "wcc", Age: 32, Money1: 28977988998789.093409203410234, Money2: 342394808.0980349582098540980349850239845023984},
-		{UserName: "wccc", Age: 33, Money1: 28977988998789.093409203410234, Money2: 342394808.0980349582098540980349850239845023984},
-		{UserName: "wcccc", Age: 34, Money1: 28977988998789.093409203410234, Money2: 342394808.0980349582098540980349850239845023984},
-		{UserName: "wccccc", Age: 35, Money1: 28977988998789.093409203410234, Money2: 342394808.0980349582098540980349850239845023984},
+		{UserName: "wc", Age: 30, Money1: 3.13, Money2: 3.1314},
+		{UserName: "wcc", Age: 32, Money1: 3.13, Money2: 3.1314},
+		{UserName: "wccc", Age: 33, Money1: 3.13, Money2: 3.1314},
+		{UserName: "wcccc", Age: 34, Money1: 3.13, Money2: 3.1314},
+		{UserName: "wccccc", Age: 35, Money1: 3.13, Money2: 3.1314},
 	}
 )
 
@@ -28,7 +28,7 @@ func TestMarshal(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(len(bs))
+	fmt.Println(string(bs))
 }
 
 func TestJsonMarshal(t *testing.T) {
