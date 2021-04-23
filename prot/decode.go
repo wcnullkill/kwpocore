@@ -1,7 +1,7 @@
 // 关于默认值
 // int int8 int16 int32 int64 默认值0
 // uint uint8 uint16 uint32 uint64 默认值0
-// string 暂不支持默认值	todo
+// string 默认值 ""
 // float32 float64 默认值0
 // bool 默认值 false
 package prot
@@ -18,6 +18,9 @@ const (
 	scanValue
 	scanEnd
 	scanError
+)
+const (
+	quote = '"'
 )
 
 type decodeState struct {
@@ -106,7 +109,7 @@ func fill(ss [][]byte, fields []field, v reflect.Value) {
 		case reflect.Float32, reflect.Float64:
 			subv.FieldByName(fields[i].name).SetFloat(stringToFloat(ss[i]))
 		case reflect.String:
-			subv.FieldByName(fields[i].name).SetString(string(ss[i]))
+			subv.FieldByName(fields[i].name).SetString(stringToString(ss[i]))
 		case reflect.Bool:
 			subv.FieldByName(fields[i].name).SetBool(stringToBool(ss[i]))
 		}
@@ -131,6 +134,17 @@ func stringToFloat(s []byte) float64 {
 func stringToBool(s []byte) bool {
 	i, _ := strconv.ParseBool(string(s))
 	return i
+}
+
+func stringToString(s []byte) string {
+	if len(s) > 2 {
+		return string(s[1 : len(s)-1])
+	}
+	if len(s) == 2 && s[0] == quote && s[1] == quote {
+		return ""
+	}
+	return string(s)
+
 }
 
 func decodeValid(v interface{}) error {

@@ -189,7 +189,9 @@ func floatEncode(e *encodeState, v reflect.Value, bits int) {
 	e.out.Write(strconv.AppendFloat(buf, v.Float(), 'f', -1, bits))
 }
 func stringEncode(e *encodeState, v reflect.Value) {
-	e.out.Write([]byte(v.String()))
+	e.out.WriteByte(quote)
+	e.out.WriteString(v.String())
+	e.out.WriteByte(quote)
 }
 
 func boolEncode(e *encodeState, v reflect.Value) {
