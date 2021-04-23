@@ -16,7 +16,7 @@ func TestReadCsvUTF8(t *testing.T) {
 		t.Fatalf("io read file [%s] error:%d", csvUTF8File, err)
 	}
 
-	testResult1, err := ReadCsv(file, ';')
+	testResult1, err := ReadCsv(file)
 	if err != nil {
 		t.Fatalf("read csv error:%d", err)
 	}
@@ -43,7 +43,7 @@ func TestReadCsvUTF8BOM(t *testing.T) {
 		t.Fatalf("io read file [%s] error:%d", csvUTF8BomFile, err)
 	}
 
-	testResult1, err := ReadCsv(file, ';')
+	testResult1, err := ReadCsv(file)
 	if err != nil {
 		t.Fatalf("read csv error:%d", err)
 	}

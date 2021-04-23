@@ -1,10 +1,15 @@
+// 关于默认值
+// int int8 int16 int32 int64 默认值0
+// uint uint8 uint16 uint32 uint64 默认值0
+// string 暂不支持默认值	todo
+// float32 float64 默认值0
+// bool 默认值 false
 package prot
 
 import (
 	"errors"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -35,6 +40,8 @@ func getDecodeFields(v interface{}) ([]field, error) {
 	return getFields(reflect.TypeOf(v).Elem())
 }
 
+// UnMarshal 反序列化
+//
 func UnMarshal(data []byte, v interface{}, opts ...ProtOption) error {
 	if err := decodeValid(reflect.TypeOf(v)); err != nil {
 		return err
@@ -57,19 +64,38 @@ func (d *decodeState) unMarshal(v interface{}, fields []field) error {
 }
 
 func (d *decodeState) simpleUnMarshal(data []byte, v interface{}, fields []field) error {
-	rows := strings.Split(string(data), string(d.opt.rowSep))
+	rows := split(data, d.opt.rowSep)
 	va := reflect.ValueOf(v).Elem()
 	grow(va, len(rows))
-	for i, row := range rows {
+	for i := range rows {
+		r := rows[i]
+		if len(r) == 0 { //防止整行都是空
+			continue
+		}
 		v1 := va.Index(i)
-		cells := strings.Split(row, string(d.opt.columnSep))
+		cells := split(r, d.opt.columnSep)
 		fill(cells, fields, v1)
+
 	}
 	return nil
 
 }
 
-func fill(ss []string, fields []field, v reflect.Value) {
+func split(data []byte, b byte) [][]byte {
+	result := make([][]byte, 0, 10)
+	j := 0
+	for i := 0; i < len(data); i++ {
+		if data[i] == b && i > 0 {
+			result = append(result, data[j:i])
+			i++
+			j = i
+		}
+	}
+	result = append(result, data[j:])
+	return result
+}
+
+func fill(ss [][]byte, fields []field, v reflect.Value) {
 	subv := v
 	for i, field := range fields {
 		switch field.t.Kind() {
@@ -80,24 +106,31 @@ func fill(ss []string, fields []field, v reflect.Value) {
 		case reflect.Float32, reflect.Float64:
 			subv.FieldByName(fields[i].name).SetFloat(stringToFloat(ss[i]))
 		case reflect.String:
-			subv.FieldByName(fields[i].name).SetString(ss[i])
+			subv.FieldByName(fields[i].name).SetString(string(ss[i]))
+		case reflect.Bool:
+			subv.FieldByName(fields[i].name).SetBool(stringToBool(ss[i]))
 		}
+
 		v.Set(subv)
 	}
 }
 
-func stringToInt(s string) int64 {
-	i, _ := strconv.Atoi(s)
+func stringToInt(s []byte) int64 {
+	i, _ := strconv.Atoi(string(s))
 	return int64(i)
 }
 
-func stringToUint(s string) uint64 {
-	i, _ := strconv.Atoi(s)
+func stringToUint(s []byte) uint64 {
+	i, _ := strconv.Atoi(string(s))
 	return uint64(i)
 }
-func stringToFloat(s string) float64 {
-	f, _ := strconv.ParseFloat(s, 64)
+func stringToFloat(s []byte) float64 {
+	f, _ := strconv.ParseFloat(string(s), 64)
 	return f
+}
+func stringToBool(s []byte) bool {
+	i, _ := strconv.ParseBool(string(s))
+	return i
 }
 
 func decodeValid(v interface{}) error {
