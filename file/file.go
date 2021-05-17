@@ -100,7 +100,6 @@ func readCsvWithInterface(file []byte, v interface{}, opts ...CsvOption) ([][]in
 	if err != nil {
 		return nil, err
 	}
-
 	result := make([][]interface{}, len(rows))
 	for i := range rows {
 		row := make([]interface{}, len(cache))
