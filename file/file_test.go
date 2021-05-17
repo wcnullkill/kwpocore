@@ -10,7 +10,13 @@ import (
 const (
 	csvUTF8File    = "../testdata/utf8.csv"
 	csvUTF8BomFile = "../testdata/utf8bom.csv"
+	csvCRLF        = "../testdata/crlf.csv"
 )
+
+type data struct {
+	C1 string
+	C2 string
+}
 
 func TestReadCsvUTF8(t *testing.T) {
 	file, err := ioutil.ReadFile(csvUTF8File)
@@ -18,7 +24,8 @@ func TestReadCsvUTF8(t *testing.T) {
 		t.Fatalf("io read file [%s] error:%d", csvUTF8File, err)
 	}
 
-	testResult1, err := ReadCsv(file)
+	opt := []CsvOption{WithCsvComment("\n")}
+	testResult1, err := readCsvWithInterface(file, data{}, opt...)
 	if err != nil {
 		t.Fatalf("read csv error:%d", err)
 	}
@@ -45,7 +52,8 @@ func TestReadCsvUTF8BOM(t *testing.T) {
 		t.Fatalf("io read file [%s] error:%d", csvUTF8BomFile, err)
 	}
 
-	testResult1, err := ReadCsv(file)
+	opt := []CsvOption{WithCsvComment("\n")}
+	testResult1, err := readCsvWithInterface(file, data{}, opt...)
 	if err != nil {
 		t.Fatalf("read csv error:%d", err)
 	}
@@ -54,6 +62,34 @@ func TestReadCsvUTF8BOM(t *testing.T) {
 		t.Fatalf("csv [%s] isn't utf8 bom", csvUTF8BomFile)
 	}
 
+	if testResult1[0][0] != "1" || testResult1[0][1] != "asd" {
+		t.Log("csv content error")
+	}
+	if testResult1[1][0] != "2" || testResult1[1][1] != "1111111111" {
+		t.Log("csv content error")
+	}
+	if testResult1[2][0] != "3" || testResult1[2][1] != "asdf1234" {
+		t.Log("csv content error")
+	}
+	if testResult1[3][0] != "4" || testResult1[3][1] != "哈哈和完全" {
+		t.Log("csv content error")
+	}
+	if testResult1[4][0] != "五" || testResult1[4][1] != "哈哈我" {
+		t.Log("csv content error")
+	}
+}
+
+func TestReadCsvCRLF(t *testing.T) {
+	file, err := ioutil.ReadFile(csvCRLF)
+	if err != nil {
+		t.Fatalf("io read file [%s] error:%d", csvUTF8File, err)
+	}
+
+	opt := []CsvOption{WithCsvComment("\r\n")}
+	testResult1, err := readCsvWithInterface(file, data{}, opt...)
+	if err != nil {
+		t.Fatalf("read csv error:%d", err)
+	}
 	if testResult1[0][0] != "1" || testResult1[0][1] != "asd" {
 		t.Log("csv content error")
 	}
