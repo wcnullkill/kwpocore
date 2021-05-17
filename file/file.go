@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -182,7 +183,7 @@ func decoderInt64(b []byte) interface{} {
 func decoderInt64R(b []byte) int64 {
 	i, err := strconv.ParseInt(string(b), 10, 64)
 	if err != nil {
-		panic("convert to int error ,check type")
+		panic(fmt.Errorf("convert %s to int error:%v", string(b), err))
 	}
 	return i
 }
@@ -202,6 +203,7 @@ func decoderUint16(b []byte) interface{} {
 func decoderUint32(b []byte) interface{} {
 	return uint32(decoderUint64R(b))
 }
+
 func decoderUint64(b []byte) interface{} {
 	return decoderUint64R(b)
 }
@@ -209,7 +211,7 @@ func decoderUint64(b []byte) interface{} {
 func decoderUint64R(b []byte) uint64 {
 	i, err := strconv.ParseUint(string(b), 10, 64)
 	if err != nil {
-		panic("convert to int error ,check type")
+		panic(fmt.Errorf("convert %s to uint error:%v", string(b), err))
 	}
 	return i
 }
@@ -217,16 +219,15 @@ func decoderUint64R(b []byte) uint64 {
 func decoderFloat32(b []byte) interface{} {
 	f, err := strconv.ParseFloat(string(b), 32)
 	if err != nil {
-		panic("convert to float error ,check type")
+		panic(fmt.Errorf("convert %s to float32 error:%v", string(b), err))
 	}
 	return float32(f)
 }
 
 func decoderFloat64(b []byte) interface{} {
-	s := string(b)
-	f, err := strconv.ParseFloat(s, 64)
+	f, err := strconv.ParseFloat(string(b), 64)
 	if err != nil {
-		panic("convert to float error ,check type")
+		panic(fmt.Errorf("convert %s to float64 error:%v", string(b), err))
 	}
 	return f
 }
