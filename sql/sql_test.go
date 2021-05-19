@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"testing"
@@ -65,6 +66,11 @@ func TestMSSQLBulkCopy(t *testing.T) {
 	// 需要sql账号role为db_datawriter
 	ct, err := BulkCopy(db, head, content, tableName, createSQL, dropSQL)
 
+	if err != nil || int(ct) != len(content) {
+		t.Error(err)
+	}
+
+	ct, err = BulkCopyWithCtx(context.Background(), db, head, content, tableName, createSQL, dropSQL)
 	if err != nil || int(ct) != len(content) {
 		t.Error(err)
 	}

@@ -1,7 +1,7 @@
 package sql
 
 import (
-	// mssql
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -40,54 +40,63 @@ func initMssql(dbcfg *conf.DBConfig) (*sql.DB, error) {
 // 	postsql 执行bulk insert 后将要执行的语句
 // 输出字段说明：
 //	insert 行数,error
-func BulkCopy(db *sql.DB, head []string, content [][]interface{}, tbname string, presql, postsql string) (rowCount int64, err error) {
-	txn, err := db.Begin()
+func BulkCopy(db *sql.DB, head []string, content [][]interface{}, tbname string, presql, postsql string) (int64, error) {
+	return BulkCopyWithCtx(context.Background(), db, head, content, tbname, presql, postsql)
+}
+
+func BulkCopyWithCtx(ctx context.Context, db *sql.DB, head []string, content [][]interface{}, tbname string, presql, postsql string) (int64, error) {
+	txn, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	if len(content) == 0 {
 		err = errors.New("没有数据")
+		return 0, err
 	}
 
-	_, err = db.Exec(presql)
+	_, err = txn.Exec(presql)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	stm, err := txn.Prepare(mssql.CopyIn(tbname, mssql.BulkOptions{}, head...))
 
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	for i := 0; i < len(content); i++ {
 		_, err = stm.Exec(content[i]...)
 		if err != nil {
-			return
+			return 0, err
 		}
 
 	}
 	result, err := stm.Exec()
-
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	err = stm.Close()
 	if err != nil {
-		return
+		return 0, err
 	}
 
-	err = txn.Commit()
-	rowCount, err = result.RowsAffected()
-
-	//后处理
-	_, err = db.Exec(postsql)
+	rowCount, err := result.RowsAffected()
 	if err != nil {
-		return
+		return 0, err
 	}
-	return
+	//后处理
+	_, err = txn.Exec(postsql)
+	if err != nil {
+		return 0, err
+	}
+	err = txn.Commit()
+	if err != nil {
+		return 0, err
+	}
+	return rowCount, err
 }
 
 func getMSSQLStr(dbcfg *conf.DBConfig) string {
