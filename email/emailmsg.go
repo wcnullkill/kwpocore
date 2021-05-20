@@ -1,4 +1,4 @@
-package main
+package email
 
 type EmailMsg struct {
 	to          []string
