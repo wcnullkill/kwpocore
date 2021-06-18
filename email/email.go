@@ -65,7 +65,7 @@ func (sr *goEmailService) Send(msg *EmailMsg) error {
 			m.Attach(fullname)
 		}
 	}
-	from := "kwpo.cn@ctrchina.cn"
+	from := "kwp.cn@ctrchina.cn"
 	if len(msg.from) > 0 {
 		from = msg.from
 	}
